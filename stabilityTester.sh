@@ -34,7 +34,8 @@ then
 	mkdir ${ROOT}/results;
 fi
 
-if [ ! -f "/usr/lib/libmpich.so.12" ];
+chk_libmpich=$(find /usr/lib -name 'libmpich.so.12')
+if [ -z "$chk_libmpich" ];
 then
 	echo "You need libmpich-dev to run xhpl"
 	echo "Install using sudo apt install libmpich-dev"
