@@ -117,13 +117,15 @@ do
         DIFF="${DIFF#* }"
         #echo $DIFF
         RESULTTEST="${DIFF% .*}"
+  	GFLOPSTEST=$(awk '/Gflops$/ {ml=NR+2} NR==ml{print $NF}' ${ROOT}/results/xhpl_${FREQUENCY}.log)
         VOLTAGE=${VOLTAGES[$FREQUENCY]}
         if [ $FINISHEDTEST -eq 1 ];
         then
             echo -ne "Frequency: ${FREQUENCY}\t"
             echo -ne "Voltage: ${VOLTAGE}\t"
             echo -ne "Success: ${SUCCESSTEST}\t"
-            echo -ne "Result: ${RESULTTEST}\n"
+            #echo -ne "Result: ${RESULTTEST}\n"
+            echo -ne "Gflops: ${GFLOPSTEST}\n"
         fi
     fi
 done
