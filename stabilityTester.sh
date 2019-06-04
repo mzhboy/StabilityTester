@@ -1,22 +1,46 @@
 #!/bin/bash
 
-XHPLBINARY=/usr/local/bin/xhpl
-MINFREQUENCY=720000 #Only test frequencies from this point.
-MAXFREQUENCY=1810000 #Only test frequencies upto this point.
+MINFREQUENCY=400000 #Only test frequencies from this point.
+MAXFREQUENCY=2810000 #Only test frequencies upto this point.
 COOLDOWNTEMP=55000 #Cool down after a test to mC degrees
 COOLDOWNFREQ=720000 # Set to this speed when cooling down
 
-CPUFREQ_HANDLER="/sys/devices/system/cpu/cpu0/cpufreq/";
+CPUFREQ_HANDLER="/sys/devices/system/cpu/cpu0/cpufreq";
 SCALINGAVAILABLEFREQUENCIES="scaling_available_frequencies";
 SCALINGMINFREQUENCY="scaling_min_freq";
 SCALINGMAXFREQUENCY="scaling_max_freq";
 
 SOCTEMPCMD="/sys/class/thermal/thermal_zone0/temp"
 
-REGULATOR_HANDLER="/sys/class/regulator/regulator.2/"
+REGULATOR_HANDLER="/sys/class/regulator/regulator.2"
 REGULATOR_MICROVOLT="microvolts"
 
 ROOT=$(pwd)
+
+policy_bak="$(cpufreq-info -p)"
+
+XHPLBINARY_USR=/usr/local/bin/xhpl
+XHPL=xhpl
+if [[ -x $XHPLBINARY_USR ]]; then
+    if [[ -f $XHPL ]];then
+        if [[ -L $XHPL ]];then
+            [[ $(realpath xhpl) == $XHPLBINARY_USR ]] || (/bin/rm $XHPL; ln -s $XHPLBINARY_USR $XHPL;)
+        elif [[ ! -x $XHPL ]]; then
+            /bin/rm $XHPL; ln -s $XHPLBINARY_USR $XHPL;
+        fi
+
+        XHPLBINARY=$ROOT/$XHPL
+    fi
+else
+    if [[ $(uname -m) == "aarch64" ]]; then
+        XHPLBINARY=xhpl64
+    else
+        echo "machine is not aarch64, you need build xhpl first"
+        exit 1
+    fi
+fi
+
+
 
 declare -A VOLTAGES=()
 
@@ -26,7 +50,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-trap "{ killall ${XHPLBINARY}; exit 0; }" SIGINT SIGTERM
+[[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]] && pkill -f "$XHPLBINARY"
 
 if [ ! -d "${ROOT}/results" ];
 then
@@ -34,38 +58,31 @@ then
 	mkdir ${ROOT}/results;
 fi
 
-chk_libmpich=$(find /usr/lib -name 'libmpich.so.12')
-if [ -z "$chk_libmpich" ];
-then
-	echo "You need libmpich-dev to run xhpl"
-	echo "Install using sudo apt install libmpich-dev"
-   	exit 1
-fi
+# install dependent packages
+[[ $(dpkg -l|grep -c libmpich12) -eq 1 ]] || require_pkg="libmpich12"
+[[ $(dpkg -l|grep -c libopenblas-base) -eq 1 ]] || require_pkg="$require_pkg libopenblas-base"
+[[ $(dpkg -l|grep -c libatlas3-base) -eq 1 ]] || require_pkg="$require_pkg libatlas3-base"
+[[ -n "$require_pkg" ]] && apt-get install $require_pkg -y
 
-AVAILABLEFREQUENCIES=$(cat ${CPUFREQ_HANDLER}${SCALINGAVAILABLEFREQUENCIES})
+AVAILABLEFREQUENCIES=$(cat ${CPUFREQ_HANDLER}/${SCALINGAVAILABLEFREQUENCIES})
 
 for FREQUENCY in $AVAILABLEFREQUENCIES
 do
     if [ $FREQUENCY -ge $MINFREQUENCY ] && [ $FREQUENCY -le $MAXFREQUENCY ];
     then
         echo "Testing frequency ${FREQUENCY}";
-        
-        if [ $FREQUENCY -gt $(cat ${CPUFREQ_HANDLER}${SCALINGMAXFREQUENCY}) ];
-        then
-            echo $FREQUENCY > ${CPUFREQ_HANDLER}${SCALINGMAXFREQUENCY}
-            echo $FREQUENCY > ${CPUFREQ_HANDLER}${SCALINGMINFREQUENCY}
-        else
-            echo $FREQUENCY > ${CPUFREQ_HANDLER}${SCALINGMINFREQUENCY}
-            echo $FREQUENCY > ${CPUFREQ_HANDLER}${SCALINGMAXFREQUENCY}
-        fi
 
-        $XHPLBINARY > ${ROOT}/results/xhpl_${FREQUENCY}.log &
+        cpufreq-set -f $FREQUENCY
+
+        "$XHPLBINARY" > ${ROOT}/results/xhpl_${FREQUENCY}.log &
+        sleep 1
         echo -n "Soc temp:"
-        while pgrep -x $XHPLBINARY > /dev/null
+        while [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]]
         do
             SOCTEMP=$(cat ${SOCTEMPCMD})
-            CURFREQ=$(cat ${CPUFREQ_HANDLER}${SCALINGMINFREQUENCY})
-            CURVOLT=$(cat ${REGULATOR_HANDLER}${REGULATOR_MICROVOLT})
+            #CURFREQ=$(cpufreq-info -f)
+            CURFREQ=$(cat ${CPUFREQ_HANDLER}/scaling_cur_freq)
+            CURVOLT=$(cat ${REGULATOR_HANDLER}/${REGULATOR_MICROVOLT})
             echo -ne "\rSoc temp: ${SOCTEMP} \tCPU Freq: ${CURFREQ} \tCPU Core: ${CURVOLT} \t"
             if [ $CURFREQ -eq $FREQUENCY ];
             then
@@ -75,13 +92,12 @@ do
         done
         echo -ne "\r"
         echo -n "Cooling down"
-        echo $COOLDOWNFREQ > ${CPUFREQ_HANDLER}${SCALINGMINFREQUENCY}
-        echo $COOLDOWNFREQ > ${CPUFREQ_HANDLER}${SCALINGMAXFREQUENCY}
+        cpufreq-set -f $COOLDOWNFREQ
         while [ $SOCTEMP -gt $COOLDOWNTEMP ];
         do
             SOCTEMP=$(cat ${SOCTEMPCMD})
             echo -ne "\rCooling down: ${SOCTEMP}"
-            
+
             sleep 1;
         done
 	echo -ne "\n"
@@ -102,7 +118,7 @@ do
         #echo $DIFF
         RESULTTEST="${DIFF% .*}"
         VOLTAGE=${VOLTAGES[$FREQUENCY]}
-        if [ $FINISHEDTEST -eq 1 ]; 
+        if [ $FINISHEDTEST -eq 1 ];
         then
             echo -ne "Frequency: ${FREQUENCY}\t"
             echo -ne "Voltage: ${VOLTAGE}\t"
@@ -112,4 +128,7 @@ do
     fi
 done
 
-
+[[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]] && pkill -f "$XHPLBINARY"
+cpufreq-set --max $(echo $policy_bak|awk '{print $2}')
+cpufreq-set --min $(echo $policy_bak|awk '{print $1}')
+cpufreq-set --governor $(echo $policy_bak|awk '{print $3}')
