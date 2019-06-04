@@ -1,10 +1,10 @@
 #!/bin/bash
 
 XHPLBINARY="xhpl64"
-MINFREQUENCY=640000 #Only test frequencies from this point.
-MAXFREQUENCY=1200000 #Only test frequencies upto this point.
+MINFREQUENCY=720000 #Only test frequencies from this point.
+MAXFREQUENCY=1810000 #Only test frequencies upto this point.
 COOLDOWNTEMP=55000 #Cool down after a test to mC degrees
-COOLDOWNFREQ=640000 # Set to this speed when cooling down
+COOLDOWNFREQ=720000 # Set to this speed when cooling down
 
 CPUFREQ_HANDLER="/sys/devices/system/cpu/cpu0/cpufreq/";
 SCALINGAVAILABLEFREQUENCIES="scaling_available_frequencies";
