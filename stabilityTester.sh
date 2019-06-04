@@ -1,6 +1,6 @@
 #!/bin/bash
 
-XHPLBINARY="xhpl64"
+XHPLBINARY=/usr/local/bin/xhpl
 MINFREQUENCY=720000 #Only test frequencies from this point.
 MAXFREQUENCY=1810000 #Only test frequencies upto this point.
 COOLDOWNTEMP=55000 #Cool down after a test to mC degrees
@@ -26,7 +26,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-trap "{ killall ${ROOT}/${XHPLBINARY}; exit 0; }" SIGINT SIGTERM
+trap "{ killall ${XHPLBINARY}; exit 0; }" SIGINT SIGTERM
 
 if [ ! -d "${ROOT}/results" ];
 then
@@ -59,7 +59,7 @@ do
             echo $FREQUENCY > ${CPUFREQ_HANDLER}${SCALINGMAXFREQUENCY}
         fi
 
-        ${ROOT}/$XHPLBINARY > ${ROOT}/results/xhpl_${FREQUENCY}.log &
+        $XHPLBINARY > ${ROOT}/results/xhpl_${FREQUENCY}.log &
         echo -n "Soc temp:"
         while pgrep -x $XHPLBINARY > /dev/null
         do
