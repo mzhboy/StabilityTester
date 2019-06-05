@@ -60,7 +60,8 @@ function prepare()
     fi
 
     # install dependent packages
-    [[ $(dpkg -l|grep -c libmpich12) -eq 1 ]] || require_pkg="libmpich12"
+    [[ $(dpkg -l|grep -c cpufrequtils) -ge 1 ]] || require_pkg="cpufrequtils"
+    [[ $(dpkg -l|grep -c libmpich12) -eq 1 ]] || require_pkg="$require_pkg libmpich12"
     [[ $(dpkg -l|grep -c libopenblas-base) -eq 1 ]] || require_pkg="$require_pkg libopenblas-base"
     [[ $(dpkg -l|grep -c libatlas3-base) -eq 1 ]] || require_pkg="$require_pkg libatlas3-base"
     [[ -n "$require_pkg" ]] && apt-get install $require_pkg -y
