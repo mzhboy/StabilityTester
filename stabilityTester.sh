@@ -25,24 +25,26 @@ function prepare()
     # select xhpl binary file
     XHPLBINARY_USR=/usr/local/bin/xhpl
     XHPL=xhpl
-    if [[ -x $XHPLBINARY_USR ]]; then
-        if [[ -f $XHPL ]];then
-            if [[ -L $XHPL ]];then
-                [[ $(realpath xhpl) == $XHPLBINARY_USR ]] || (/bin/rm $XHPL; ln -s $XHPLBINARY_USR $XHPL;)
-            elif [[ ! -x $XHPL ]]; then
-                /bin/rm $XHPL; ln -s $XHPLBINARY_USR $XHPL;
+    if [[ -x "$XHPLBINARY_USR" ]]; then
+        if [[ -f "$XHPL" ]];then
+            if [[ -L "$XHPL" ]];then
+                [[ "$(realpath xhpl)" == "$XHPLBINARY_USR" ]] || { /bin/rm "$XHPL"; ln -s "$XHPLBINARY_USR" "$XHPL"; }
+            else
+             [[ -x "$XHPL" ]] || /bin/rm "$XHPL"; ln -s "$XHPLBINARY_USR" "$XHPL";
             fi
 
-            XHPLBINARY=$ROOT/$XHPL
+            XHPLBINARY="$ROOT/$XHPL"
         fi
     else
-        if [[ $(uname -m) == "aarch64" ]]; then
+        if [[ "$(uname -m)" == "aarch64" ]]; then
             XHPLBINARY=xhpl64
         else
             echo "machine is not aarch64, you need build xhpl first"
             exit 1
         fi
     fi
+
+    [[ -x "$XHPLBINARY" ]] || { echo "error xhpl binary no exists";exit 1; }
 
     declare -A VOLTAGES=()
 
@@ -82,7 +84,7 @@ function bench_loop()
 
             "$XHPLBINARY" > ${ROOT}/results/xhpl_${FREQUENCY}.log &
             sleep 1
-	    [[ $(pgrep -c -f "$XHPLBINARY") -eq 0 ]] && { echo "fail no xhpl process";exit 1; }
+            [[ $(pgrep -c -f "$XHPLBINARY") -eq 0 ]] && { echo "fail no xhpl process";exit 1; }
             echo -n "Soc temp:"
             while [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]]
             do
