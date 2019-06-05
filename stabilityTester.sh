@@ -32,9 +32,10 @@ function prepare()
             else
              [[ -x "$XHPL" ]] || /bin/rm "$XHPL"; ln -s "$XHPLBINARY_USR" "$XHPL";
             fi
-
-            XHPLBINARY="$ROOT/$XHPL"
+        else
+            ln -s "$XHPLBINARY_USR" "$XHPL"
         fi
+        XHPLBINARY="$ROOT/$XHPL"
     else
         if [[ "$(uname -m)" == "aarch64" ]]; then
             XHPLBINARY=xhpl64
@@ -148,6 +149,8 @@ function print_result()
     done
 }
 
+PS4='Line ${LINENO}: '
+# trap prepare debug
 prepare
 bench_loop
 print_result
