@@ -1,4 +1,5 @@
 #!/bin/bash
+sync
 
 MINFREQUENCY=400000 #Only test frequencies from this point.
 MAXFREQUENCY=2810000 #Only test frequencies upto this point.
@@ -81,6 +82,7 @@ function bench_loop()
 
             "$XHPLBINARY" > ${ROOT}/results/xhpl_${FREQUENCY}.log &
             sleep 1
+	    [[ $(pgrep -c -f "$XHPLBINARY") -eq 0 ]] && { echo "fail no xhpl process";exit 1; }
             echo -n "Soc temp:"
             while [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]]
             do
