@@ -153,4 +153,5 @@ PS4='Line ${LINENO}: '
 # trap prepare debug
 prepare
 bench_loop
-print_result
+print_result | tee -a $ROOT/result.log
+sync $ROOT/result.log
