@@ -1,4 +1,5 @@
 #!/bin/bash
+[[ -x "$0" ]] || { chmod a+x "$0" || sudo chmod a+x "$0"; }
 sync
 
 MINFREQUENCY=400000 #Only test frequencies from this point.
@@ -20,7 +21,7 @@ ROOT=$(pwd)
 
 policy_bak="$(cpufreq-info -p)"
 
-function prepare()
+function select_xhpl()
 {
     # select xhpl binary file
     XHPLBINARY_USR=/usr/local/bin/xhpl
@@ -46,7 +47,15 @@ function prepare()
     fi
 
     [[ -x "$XHPLBINARY" ]] || { echo "error xhpl binary no exists";exit 1; }
+}
 
+function kill_xhpl()
+{
+    [[ -n "$XHPLBINARY" ]] && [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]] && pkill -f "$XHPLBINARY"
+}
+
+function prepare()
+{
     declare -A VOLTAGES=()
 
     # Make sure only root can run our script
@@ -55,7 +64,8 @@ function prepare()
     exit 1
     fi
 
-    [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]] && pkill -f "$XHPLBINARY"
+    select_xhpl
+    kill_xhpl
 
     if [ ! -d "${ROOT}/results" ];
     then
@@ -121,7 +131,7 @@ function bench_loop()
 
 function print_result()
 {
-    [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]] && pkill -f "$XHPLBINARY"
+    kill_xhpl
     echo -e "\nDone testing stability:\tdate: $(date +%Y%m%d-%H%M%S)"
     for FREQUENCY in $AVAILABLEFREQUENCIES
     do
@@ -151,6 +161,7 @@ function print_result()
 
 PS4='Line ${LINENO}: '
 # trap prepare debug
+trap "{ kill_xhpl; exit 0; }" SIGINT SIGTERM SIGKILL
 prepare
 bench_loop
 print_result | tee -a $ROOT/result.log
