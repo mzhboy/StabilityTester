@@ -8,6 +8,9 @@ fi
 
 pushd .
 cd $(dirname $0)
+
+trap 'pkill -f stabilityTester.sh;exit' SIGINT SIGTERM SIGKILL
+
 for i in `seq 1 $count`;
 do 
 	printf "\n==== %4d\n" $i|tee -a result.log 
