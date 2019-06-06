@@ -96,7 +96,10 @@ function bench_loop()
     do
         if [ $FREQUENCY -ge $MINFREQUENCY ] && [ $FREQUENCY -le $MAXFREQUENCY ];
         then
-            cpufreq-set -f $FREQUENCY
+	    local cpufreq_hwlimit="$(cpufreq-info -l)"
+	    cpufreq-set --min $(printf "$cpufreq_hwlimit"|awk 'END{print $1}') \
+		        --max $(printf "$cpufreq_hwlimit"|awk 'END{print $2}')
+	    cpufreq-set --freq $FREQUENCY
 
             "$XHPLBINARY" > ${ROOT}/results/xhpl_${FREQUENCY}.log &
             sleep 0.5
