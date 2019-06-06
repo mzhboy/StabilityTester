@@ -91,42 +91,44 @@ function bench_loop()
 {
     AVAILABLEFREQUENCIES=$(cat ${CPUFREQ_HANDLER}/${SCALINGAVAILABLEFREQUENCIES})
 
+    export LC_ALL=zh_CN.UTF-8
     for FREQUENCY in $AVAILABLEFREQUENCIES
     do
         if [ $FREQUENCY -ge $MINFREQUENCY ] && [ $FREQUENCY -le $MAXFREQUENCY ];
         then
-            echo "Testing frequency ${FREQUENCY}";
-
             cpufreq-set -f $FREQUENCY
 
             "$XHPLBINARY" > ${ROOT}/results/xhpl_${FREQUENCY}.log &
-            sleep 1
+            sleep 0.5
             [[ $(pgrep -c -f "$XHPLBINARY") -eq 0 ]] && { echo "fail no xhpl process";exit 1; }
-            echo -n "Soc temp:"
+
             while [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]]
             do
                 SOCTEMP=$(cat ${SOCTEMPCMD})
                 #CURFREQ=$(cpufreq-info -f)
                 CURFREQ=$(cat ${CPUFREQ_HANDLER}/scaling_cur_freq)
                 CURVOLT=$(cat ${REGULATOR_HANDLER}/${REGULATOR_MICROVOLT})
-                echo -ne "\rSoc temp: ${SOCTEMP} \tCPU Freq: ${CURFREQ} \tCPU Core: ${CURVOLT} \t"
+                printf "\r"
+                printf "TEST Freq: %4d MHz\t" "$((FREQUENCY/1000))"
+                printf "Soc temp: %+6s ℃\t"      $(awk -v x=${SOCTEMP} 'BEGIN{printf "%.2f\n",x/1000}') # ℃=\u2103
+                printf "CPU Freq: %4d MHz\t"  "$((CURFREQ/1000))"
+                printf "CPU Core: %4d mV"     "$((CURVOLT/1000))"
                 if [ $CURFREQ -eq $FREQUENCY ];
                 then
                     VOLTAGES[$FREQUENCY]=$CURVOLT
                 fi
-                sleep 1;
+                sleep 0.4;
             done
-            echo -ne "\r"
-            echo -n "Cooling down"
+
+            echo
             cpufreq-set -f $COOLDOWNFREQ
             while [ $SOCTEMP -gt $COOLDOWNTEMP ];
             do
-                SOCTEMP=$(cat ${SOCTEMPCMD})
-                echo -ne "\rCooling down: ${SOCTEMP}"
-
-                sleep 1;
+                local SOCTEMP=$(cat ${SOCTEMPCMD})
+                printf "\rCooling down: ${SOCTEMP}"
+                sleep 0.4;
             done
-        echo -ne "\n"
+            printf "\r"
         fi
     done
 
@@ -153,11 +155,11 @@ function print_result()
             VOLTAGE=${VOLTAGES[$FREQUENCY]}
             if [ $FINISHEDTEST -eq 1 ];
             then
-                echo -ne "Frequency: $((FREQUENCY/1000)) MHz\t"
-                echo -ne "Voltage:  $((VOLTAGE/1000)) mV\t"
-                echo -ne "Success: ${SUCCESSTEST}\t"
-                #echo -ne "Result: ${RESULTTEST}\n"
-                echo -ne "Gflops: ${GFLOPSTEST}\n"
+                printf "Frequency: %4d MHz\t" "$((FREQUENCY/1000))"
+                printf "Voltage:  %4d mV\t"   "$((VOLTAGE/1000))"
+                printf "Success: ${SUCCESSTEST}\t"
+                #printf "Result: ${RESULTTEST}\n"
+                printf "Gflops: ${GFLOPSTEST}\n"
             fi
         fi
     done
