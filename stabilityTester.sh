@@ -19,7 +19,13 @@ REGULATOR_MICROVOLT="microvolts"
 
 ROOT=$(pwd)
 
-policy_bak="$(cpufreq-info -p)"
+cpufreq_policy_bak="$(cpufreq-info -p)"
+function cpufreq_restore()
+{
+    cpufreq-set --max $(echo $cpufreq_policy_bak|awk '{print $2}') \
+                --min $(echo $cpufreq_policy_bak|awk '{print $1}') \
+                --governor $(echo $cpufreq_policy_bak|awk '{print $3}')
+}
 
 function select_xhpl()
 {
@@ -124,9 +130,7 @@ function bench_loop()
         fi
     done
 
-    cpufreq-set --max $(echo $policy_bak|awk '{print $2}')
-    cpufreq-set --min $(echo $policy_bak|awk '{print $1}')
-    cpufreq-set --governor $(echo $policy_bak|awk '{print $3}')
+    cpufreq_restore
 }
 
 function print_result()
@@ -161,7 +165,7 @@ function print_result()
 
 PS4='Line ${LINENO}: '
 # trap prepare debug
-trap "{ kill_xhpl; exit 0; }" SIGINT SIGTERM SIGKILL
+trap "{ kill_xhpl; cpufreq_restore; echo && exit 0; }" SIGINT SIGTERM SIGKILL
 prepare
 bench_loop
 print_result | tee -a $ROOT/result.log
