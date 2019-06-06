@@ -122,7 +122,7 @@ function bench_loop()
 function print_result()
 {
     [[ $(pgrep -c -f "$XHPLBINARY") -gt 0 ]] && pkill -f "$XHPLBINARY"
-    echo -e "\nDone testing stability:"
+    echo -e "\nDone testing stability:\tdate: $(date +%Y%m%d-%H%M%S)"
     for FREQUENCY in $AVAILABLEFREQUENCIES
     do
         if [ $FREQUENCY -ge $MINFREQUENCY ] && [ $FREQUENCY -le $MAXFREQUENCY ];
