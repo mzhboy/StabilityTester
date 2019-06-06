@@ -10,7 +10,7 @@ pushd .
 cd $(dirname $0)
 for i in `seq 1 $count`;
 do 
-	echo ==== $i 
+	printf "==== %4d" $i 
 	bash stabilityTester.sh
 done
 popd
