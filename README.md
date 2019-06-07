@@ -20,6 +20,18 @@ To run multiple times(10), use this command
 ./runbench.sh 100
 ```
 
+**find out failed**
+run `./runbench.sh 100` in byobu or tmux session, after finished run `grep 'Success: 0' result.log`.
+
+```
+Frequency: 1640 MHz	Voltage:  930 mV	Success: 0	Gflops: 1.6599e+00
+Frequency: 1640 MHz	Voltage:  930 mV	Success: 0	Gflops: 1.6616e+00
+Frequency: 1800 MHz	Voltage:  990 mV	Success: 0	Gflops: 1.6921e+00
+Frequency: 1800 MHz	Voltage:  990 mV	Success: 0	Gflops: 1.6775e+00
+Frequency: 1640 MHz	Voltage:   940 mV	Success: 0	Gflops: 1.6845e+00
+Frequency: 1640 MHz	Voltage:   940 mV	Success: 0	Gflops: 1.6882e+00
+```
+
 **turn off others cpu hungary program like rpimonitor(perl script) to get accurate result**
 
 *****
