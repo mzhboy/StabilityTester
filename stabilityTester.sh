@@ -45,7 +45,7 @@ function select_xhpl()
         XHPLBINARY="$ROOT/$XHPL"
     else
         if [[ "$(uname -m)" == "aarch64" ]]; then
-            XHPLBINARY=xhpl64
+            XHPLBINARY=./xhpl64
         else
             echo "machine is not aarch64, you need build xhpl first"
             exit 1
